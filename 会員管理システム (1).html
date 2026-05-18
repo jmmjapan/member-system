@@ -388,12 +388,22 @@ async function deleteFromSupabase(id){if(!state.sbUrl||!state.sbKey)return false
 function loadLocal(){try{const d=localStorage.getItem(STORAGE_KEY);if(d)state.members=JSON.parse(d);}catch(e){}}
 function saveLocal(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state.members));}catch(e){}}
 
-function loadAccounts(){try{const d=localStorage.getItem(ACCOUNTS_KEY);if(d)return JSON.parse(d);}catch(e){}return [{id:'admin',pw:'nakodo2024',role:'admin'}];}
+async function hashPw(pw){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pw));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function loadAccounts(){
+  try{const d=localStorage.getItem(ACCOUNTS_KEY);if(d)return JSON.parse(d);}catch(e){}
+  return [{id:'admin',pw:'a6e67bd6cdef1c58574b3e883d244e0fe9503ca47b6c70f1e7c37ad62e9bdd53',role:'admin',hashed:true}];
+}
 function saveAccounts(a){try{localStorage.setItem(ACCOUNTS_KEY,JSON.stringify(a));}catch(e){}}
 
 async function doLogin(){
   const id=document.getElementById('login-id').value.trim(),pw=document.getElementById('login-pw').value;
-  const account=loadAccounts().find(a=>a.id===id&&a.pw===pw);
+  const hashed=await hashPw(pw);
+  const accounts=loadAccounts();
+  const account=accounts.find(a=>a.id===id&&(a.hashed?a.pw===hashed:a.pw===pw));
+  if(account&&!account.hashed){account.pw=hashed;account.hashed=true;saveAccounts(accounts);}
   if(!account){document.getElementById('login-err').textContent='IDまたはパスワードが違います';return;}
   state.currentUser=id;state.currentRole=account.role||'viewer';
   loadSbConfig();
@@ -501,22 +511,23 @@ function openAccountEdit(idx){
   document.getElementById('edit-role').value=a.role||'viewer';
   document.getElementById('account-edit-modal').classList.add('open');
 }
-function saveAccountEdit(){
+async function saveAccountEdit(){
   const accounts=loadAccounts();
   const pw=document.getElementById('edit-pw').value;
   const role=document.getElementById('edit-role').value;
-  if(pw)accounts[editingAccountIdx].pw=pw;
+  if(pw){accounts[editingAccountIdx].pw=await hashPw(pw);accounts[editingAccountIdx].hashed=true;}
   accounts[editingAccountIdx].role=role;
   saveAccounts(accounts);renderAccountList();
   closeModal('account-edit-modal');
 }
 function removeAccount(idx){const accounts=loadAccounts();if(accounts[idx].id==='admin'){alert('adminは削除できません');return;}if(!confirm(accounts[idx].id+'を削除しますか？'))return;accounts.splice(idx,1);saveAccounts(accounts);renderAccountList();}
 function openAccountModal(){document.getElementById('account-modal').classList.add('open');}
-function addAccount(){
+async function addAccount(){
   const uid=document.getElementById('new-uid').value.trim(),pw=document.getElementById('new-pw').value,role=document.getElementById('new-role').value;
   if(!uid||!pw){alert('IDとパスワードを入力してください');return;}
   const accounts=loadAccounts();if(accounts.find(a=>a.id===uid)){alert('そのIDはすでに存在します');return;}
-  accounts.push({id:uid,pw,role});saveAccounts(accounts);renderAccountList();
+  const hashed=await hashPw(pw);
+  accounts.push({id:uid,pw:hashed,role,hashed:true});saveAccounts(accounts);renderAccountList();
   closeModal('account-modal');document.getElementById('new-uid').value='';document.getElementById('new-pw').value='';document.getElementById('new-role').value='admin';
 }
 
