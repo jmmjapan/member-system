@@ -394,7 +394,7 @@ async function hashPw(pw){
 }
 function loadAccounts(){
   try{const d=localStorage.getItem(ACCOUNTS_KEY);if(d)return JSON.parse(d);}catch(e){}
-  return [{id:'admin',pw:'a6e67bd6cdef1c58574b3e883d244e0fe9503ca47b6c70f1e7c37ad62e9bdd53',role:'admin',hashed:true}];
+  return [{id:'admin',pw:'0031fca61ccb05fa00f2d7f58dffc651322bbca707dd86780666e697693e5596',role:'admin',hashed:true}];
 }
 function saveAccounts(a){try{localStorage.setItem(ACCOUNTS_KEY,JSON.stringify(a));}catch(e){}}
 
