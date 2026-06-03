@@ -531,15 +531,24 @@ function isAdmin(){return state.currentRole==='admin';}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function calcAge(birth){
   if(!birth)return null;
-  const m=birth.match(/(\d+)/);
-  if(!m)return null;
-  let y=parseInt(m[1]);
+  // 元号→西暦変換
+  const nums=birth.match(/\d+/g);
+  if(!nums)return null;
+  let y=parseInt(nums[0]);
   if(birth.includes('昭和'))y+=1925;
   else if(birth.includes('平成'))y+=1988;
   else if(birth.includes('令和'))y+=2018;
   else if(y<50)y+=2000;
   else if(y<100)y+=1900;
-  const age=new Date().getFullYear()-y;
+  // 月・日を取得（なければ1月1日扱い）
+  const mo=nums.length>=2?parseInt(nums[1]):1;
+  const dy=nums.length>=3?parseInt(nums[2]):1;
+  // 誕生日を迎えているか確認して正確な年齢を計算
+  const today=new Date();
+  const todayMo=today.getMonth()+1;
+  const todayDy=today.getDate();
+  let age=today.getFullYear()-y;
+  if(todayMo<mo||(todayMo===mo&&todayDy<dy))age--;
   return(age>0&&age<120)?age:null;
 }
 
