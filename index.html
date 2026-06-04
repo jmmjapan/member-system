@@ -373,7 +373,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;fo
     </div>
     <div class="modal-body">
       <p style="font-size:13px;margin-bottom:12px">申し込み先：<strong id="omiai-to-name"></strong></p>
-      <div class="form-group"><label>申し込む会員</label><input type="text" id="omiai-search" placeholder="名前で絞り込む..." style="width:100%;padding:8px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;margin-bottom:6px" oninput="filterOmiaiMembers()"><select id="omiai-from-member" style="width:100%;padding:8px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;height:160px" size="6"></select></div>
+      <div class="form-group"><label>申し込む会員</label><input type="text" id="omiai-search" placeholder="名前で絞り込む..." style="width:100%;padding:8px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;margin-bottom:6px" oninput="filterOmiaiMembers()"><input type="hidden" id="omiai-from-member"><div id="omiai-from-member-list" style="width:100%;border:1px solid var(--border2);border-radius:var(--radius-sm);height:160px;overflow-y:auto;background:#fff;"></div></div>
       <div class="form-group"><label>メッセージ（任意）</label><textarea id="omiai-message" style="width:100%;height:80px;padding:8px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;resize:vertical" placeholder="お見合い申し込みのメッセージ"></textarea></div>
     </div>
     <div class="modal-footer">
@@ -941,7 +941,11 @@ async function updateOmiaiStatus(id,status){
   try{const res=await sbFetch('omiai?id=eq.'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({status,updated_at:new Date().toISOString()})});return res.ok;}catch(e){return false;}
 }
 let omiaiOppositeMembers=[];
-function openOmiaiModal(){
+async function openOmiaiModal(){
+  // membersが空の場合は再取得する（スマホでの遅延対策）
+  if(!state.members||state.members.length===0){
+    await loadFromSupabase();
+  }
   const m=state.members.find(x=>x.id===state.detailId);if(!m)return;
   document.getElementById('omiai-to-name').textContent=m.name||'（名前未設定）';
   omiaiOppositeMembers=state.members.filter(x=>x.gender!==m.gender);
@@ -952,9 +956,20 @@ function openOmiaiModal(){
 }
 function filterOmiaiMembers(){
   const q=document.getElementById('omiai-search').value.trim().toLowerCase();
-  const sel=document.getElementById('omiai-from-member');
+  const list=document.getElementById('omiai-from-member-list');
   const filtered=q?omiaiOppositeMembers.filter(x=>(x.name||'').toLowerCase().includes(q)):omiaiOppositeMembers;
-  sel.innerHTML=filtered.map(x=>`<option value="${x.id}">${x.name||'（名前未設定）'}</option>`).join('');
+  const currentVal=document.getElementById('omiai-from-member').value;
+  list.innerHTML=filtered.map(x=>{
+    const sel=x.id===currentVal?'background:var(--pink-light);font-weight:bold;':'';
+    return `<div onclick="selectOmiaiMember('${x.id}',this)" style="padding:8px 12px;cursor:pointer;font-size:13px;font-family:inherit;${sel}">${x.name||'（名前未設定）'}</div>`;
+  }).join('');
+  if(!currentVal&&filtered.length>0){selectOmiaiMember(filtered[0].id,list.firstChild);}
+}
+function selectOmiaiMember(id,el){
+  document.getElementById('omiai-from-member').value=id;
+  const list=document.getElementById('omiai-from-member-list');
+  list.querySelectorAll('div').forEach(d=>{d.style.background='';d.style.fontWeight='';});
+  if(el){el.style.background='var(--pink-light)';el.style.fontWeight='bold';}
 }
 async function submitOmiai(){
   const toM=state.members.find(x=>x.id===state.detailId);
