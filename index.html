@@ -1195,18 +1195,20 @@ async function removeAccount(idx){
   if(!ok){alert('削除に失敗しました');return;}
   accounts.splice(idx,1);saveAccounts(accounts);renderAccountList();
 }
-function addAccount(){
+async function addAccount(){
   const uid=document.getElementById('new-uid').value.trim();
   const pw=document.getElementById('new-pw').value.trim();
   const role=document.getElementById('new-role').value;
   if(!uid||!pw){alert('IDとパスワードを入力してください');return;}
   const accounts=loadAccounts();
   if(accounts.find(a=>a.id===uid)){alert('そのIDはすでに存在します');return;}
-  accounts.push({id:uid,pw,role});
+  const account={id:uid,pw,role};
+  const ok=await saveAccountToSupabase(account);
+  if(!ok){alert('追加に失敗しました');return;}
+  accounts.push(account);
   saveAccounts(accounts);closeModal('account-modal');renderAccountList();
   document.getElementById('new-uid').value='';document.getElementById('new-pw').value='';
 }
-
 // ========== 所属相談所管理 ==========
 async function loadOfficesFromSupabase(){
   if(!state.sbUrl||!state.sbKey)return;
