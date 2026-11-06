@@ -1187,10 +1187,12 @@ function saveAccountEdit(){
   accounts[editingAccountIdx].role=document.getElementById('edit-role').value;
   saveAccounts(accounts);closeModal('account-edit-modal');renderAccountList();
 }
-function removeAccount(idx){
+async function removeAccount(idx){
   const accounts=loadAccounts();
   if(accounts[idx].id==='admin'){alert('adminは削除できません');return;}
   if(!confirm(accounts[idx].id+'を削除しますか？'))return;
+  const ok=await deleteAccountFromSupabase(accounts[idx].id);
+  if(!ok){alert('削除に失敗しました');return;}
   accounts.splice(idx,1);saveAccounts(accounts);renderAccountList();
 }
 function addAccount(){
