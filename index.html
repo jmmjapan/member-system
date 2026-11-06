@@ -1180,11 +1180,14 @@ function openAccountEdit(idx){
   document.getElementById('edit-role').value=a.role||'viewer';
   document.getElementById('account-edit-modal').classList.add('open');
 }
-function saveAccountEdit(){
+async function saveAccountEdit(){
   const accounts=loadAccounts();
   const pw=document.getElementById('edit-pw').value;
-  if(pw)accounts[editingAccountIdx].pw=pw;
-  accounts[editingAccountIdx].role=document.getElementById('edit-role').value;
+  const account=accounts[editingAccountIdx];
+  if(pw)account.pw=pw;
+  account.role=document.getElementById('edit-role').value;
+  const ok=await updateAccountInSupabase(account);
+  if(!ok){alert('保存に失敗しました');return;}
   saveAccounts(accounts);closeModal('account-edit-modal');renderAccountList();
 }
 async function removeAccount(idx){
